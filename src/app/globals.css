@@ -1,26 +1,206 @@
+@import url("https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Inter:wght@300;400;500&family=Poppins:wght@300;400&display=swap");
+
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* ─── Tailwind v4 theme tokens ─────────────────────────────────────── */
+@theme {
+  /* Colors */
+  --color-black:          #0A0A0A;
+  --color-charcoal:       #111111;
+  --color-surface:        #1A1A1A;
+  --color-gold:           #D4AF37;
+  --color-champagne:      #E6C78B;
+  --color-cream:          #F9F9F9;
+  --color-gray-muted:     #888888;
+  --color-gray-dim:       #555555;
+  --color-emerald-jewel:  #2A6B4A;
+  --color-ruby-jewel:     #6B2A3A;
+  --color-sapphire-jewel: #1A2D6B;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  /* Font families */
+  --font-cinzel:          "Cinzel", serif;
+  --font-cormorant:       "Cormorant Garamond", serif;
+  --font-inter:           "Inter", sans-serif;
+  --font-poppins:         "Poppins", sans-serif;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  /* Letter spacing */
+  --letter-spacing-ultra:   0.12em;
+  --letter-spacing-wide:    0.08em;
+  --letter-spacing-widest:  0.16em;
+  --letter-spacing-price:   0.04em;
+  --letter-spacing-nav:     0.1em;
+
+  /* Border radius */
+  --radius-btn:   2px;
+  --radius-card:  8px;
+  --radius-hero:  16px;
+
+  /* Transitions */
+  --ease-luxury: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --duration-luxury: 800ms;
+  --duration-hover:  400ms;
+
+  /* Animations */
+  --animate-shimmer:     shimmer 1.8s linear infinite;
+  --animate-pulse-glow:  pulse-glow 8s ease-in-out infinite;
+  --animate-chevron-bob: chevron-bob 2s ease-in-out infinite;
+  --animate-fade-up:     fade-up 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+
+  /* Keyframes */
+  @keyframes shimmer {
+    0%   { background-position: -200% 0; }
+    100% { background-position:  200% 0; }
+  }
+  @keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 0 0 rgb(212 175 55 / 0); }
+    50%       { box-shadow: 0 0 0 12px rgb(212 175 55 / 0.12); }
+  }
+  @keyframes chevron-bob {
+    0%, 100% { transform: translateY(0); }
+    50%       { transform: translateY(6px); }
+  }
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
   }
 }
 
+/* ─── CSS variables for non-Tailwind use ───────────────────────────── */
+:root {
+  --gold:       #D4AF37;
+  --champagne:  #E6C78B;
+  --black:      #0A0A0A;
+  --charcoal:   #111111;
+  --surface:    #1A1A1A;
+  --white:      #F9F9F9;
+  --gray-muted: #888888;
+  --gray-dim:   #555555;
+}
+
+/* ─── Reset ────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: auto; }
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: #0A0A0A;
+  color: #F9F9F9;
+  font-family: "Inter", sans-serif;
+  font-weight: 400;
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ─── Typography ───────────────────────────────────────────────────── */
+h1, h2, h3, h4, h5, h6 {
+  font-family: "Cinzel", serif;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+}
+
+/* ─── Selection ────────────────────────────────────────────────────── */
+::selection {
+  background: rgba(212, 175, 55, 0.25);
+  color: #F9F9F9;
+}
+
+/* ─── Scrollbar ────────────────────────────────────────────────────── */
+::-webkit-scrollbar        { width: 4px; }
+::-webkit-scrollbar-track  { background: #0A0A0A; }
+::-webkit-scrollbar-thumb  { background: #333; border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: #D4AF37; }
+
+/* ─── Focus ring ───────────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid #D4AF37;
+  outline-offset: 2px;
+}
+
+/* ─── Skip link ────────────────────────────────────────────────────── */
+.skip-to-content {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: #D4AF37;
+  color: #0A0A0A;
+  padding: 8px 16px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  z-index: 9999;
+  transition: top 0.2s;
+}
+.skip-to-content:focus { top: 0; }
+
+/* ─── Lenis ────────────────────────────────────────────────────────── */
+html.lenis, html.lenis body { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
+.lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
+
+/* ─── Skeleton shimmer ─────────────────────────────────────────────── */
+.skeleton {
+  background: linear-gradient(90deg, #1A1A1A 0%, #252525 50%, #1A1A1A 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.8s linear infinite;
+}
+
+/* ─── Gold gradient text ───────────────────────────────────────────── */
+.text-gold-gradient {
+  background: linear-gradient(135deg, #D4AF37 0%, #E6C78B 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ─── Gold hairline divider ────────────────────────────────────────── */
+.divider-gold {
+  height: 0.5px;
+  background: linear-gradient(to right, transparent, #D4AF37, transparent);
+}
+
+/* ─── Embla carousel ───────────────────────────────────────────────── */
+.embla          { overflow: hidden; }
+.embla__container { display: flex; touch-action: pan-y pinch-zoom; }
+
+/* ─── Editorial article body ───────────────────────────────────────── */
+.editorial-body p {
+  font-family: "Inter", sans-serif;
+  font-size: 0.9375rem;
+  line-height: 1.85;
+  color: #888888;
+  margin-bottom: 1.5rem;
+}
+.editorial-body p.lead {
+  font-family: "Cormorant Garamond", serif;
+  font-size: 1.2rem;
+  font-style: italic;
+  color: #aaaaaa;
+  line-height: 1.7;
+}
+.editorial-body h2 {
+  font-family: "Cinzel", serif;
+  font-size: 1rem;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  color: #F9F9F9;
+  margin-top: 2.5rem;
+  margin-bottom: 1rem;
+}
+.editorial-body blockquote {
+  border-left: 1.5px solid #D4AF37;
+  margin: 2rem 0;
+  padding: 0.25rem 0 0.25rem 1.5rem;
+  font-family: "Cormorant Garamond", serif;
+  font-size: 1.125rem;
+  font-style: italic;
+  color: #cccccc;
+  line-height: 1.7;
+}
+
+/* ─── Reduced motion ───────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
