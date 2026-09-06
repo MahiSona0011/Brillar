@@ -33,6 +33,7 @@ export default function ProductCard({ product, index = 0 }: Props) {
 
   function handleWishlistClick(e: React.MouseEvent) {
     e.preventDefault();
+    e.stopPropagation();
     if (status !== "authenticated") {
       router.push("/auth/signin?callbackUrl=/collections");
       return;

@@ -70,7 +70,7 @@ export default function WishlistView({ products }: { products: Product[] }) {
                     className="object-cover transition-transform duration-700 group-hover:scale-[1.04]"
                   />
                   <button
-                    onClick={(e) => { e.preventDefault(); remove(product.id); }}
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); remove(product.id); }}
                     aria-label={`Remove ${product.name} from wishlist`}
                     className="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-[rgba(10,10,10,0.7)] text-[#C06080] hover:text-[#F9F9F9] transition-colors"
                   >
