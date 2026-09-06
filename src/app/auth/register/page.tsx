@@ -2,14 +2,18 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
 import { motion } from "framer-motion";
 import { Eye, EyeOff } from "lucide-react";
 
 export default function RegisterPage() {
+  const router = useRouter();
   const [form, setForm] = useState({ firstName: "", lastName: "", email: "", password: "" });
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [error, setError] = useState("");
 
   function update(key: string, value: string) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -18,9 +22,36 @@ export default function RegisterPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 1200));
+    setError("");
+
+    const res = await fetch("/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(form),
+    });
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      setLoading(false);
+      setError(data.error ?? "Something went wrong. Please try again.");
+      return;
+    }
+
+    // Auto sign in right after successful registration
+    const signInResult = await signIn("credentials", {
+      redirect: false,
+      email: form.email,
+      password: form.password,
+    });
+
     setLoading(false);
-    setSuccess(true);
+
+    if (signInResult?.ok) {
+      router.push("/account");
+    } else {
+      // Account was created but auto sign-in failed — fall back to the success card
+      setSuccess(true);
+    }
   }
 
   return (
@@ -111,6 +142,12 @@ export default function RegisterPage() {
                     Minimum 8 characters
                   </p>
                 </div>
+
+                {error && (
+                  <p className="font-inter text-[10px] tracking-[0.06em] text-[#C06080] bg-[#6B2A3A]/10 border border-[#6B2A3A]/20 rounded-[2px] px-3 py-2">
+                    {error}
+                  </p>
+                )}
 
                 <button
                   type="submit"

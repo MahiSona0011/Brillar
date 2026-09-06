@@ -1,11 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Heart } from "lucide-react";
 import { motion } from "framer-motion";
 import ImageWithFallback from "@/components/ui/ImageWithFallback";
 import type { Product, Badge } from "@/lib/data";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { toggleWishlist } from "@/lib/actions/wishlist";
 
 const BADGE_COLORS: Record<Badge, string> = {
   Bestseller: "bg-[#D4AF37]/10 text-[#D4AF37] border-[#D4AF37]/30",
@@ -22,6 +26,26 @@ interface Props {
 
 export default function ProductCard({ product, index = 0 }: Props) {
   const { format } = useCurrency();
+  const { status } = useSession();
+  const router = useRouter();
+  const [saved, setSaved] = useState(false);
+  const [, startTransition] = useTransition();
+
+  function handleWishlistClick(e: React.MouseEvent) {
+    e.preventDefault();
+    if (status !== "authenticated") {
+      router.push("/auth/signin?callbackUrl=/collections");
+      return;
+    }
+    setSaved((s) => !s);
+    startTransition(async () => {
+      try {
+        await toggleWishlist(product.id);
+      } catch {
+        setSaved((s) => !s); // revert on failure
+      }
+    });
+  }
 
   return (
     <motion.article
@@ -53,11 +77,13 @@ export default function ProductCard({ product, index = 0 }: Props) {
           )}
 
           <button
-            aria-label={`Add ${product.name} to wishlist`}
-            onClick={(e) => { e.preventDefault(); }}
-            className="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-[rgba(10,10,10,0.6)] text-[#555555] hover:text-[#D4AF37] opacity-0 group-hover:opacity-100 transition-all duration-300"
+            aria-label={saved ? `Remove ${product.name} from wishlist` : `Add ${product.name} to wishlist`}
+            onClick={handleWishlistClick}
+            className={`absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-[rgba(10,10,10,0.6)] transition-all duration-300 ${
+              saved ? "text-[#D4AF37] opacity-100" : "text-[#555555] hover:text-[#D4AF37] opacity-0 group-hover:opacity-100"
+            }`}
           >
-            <Heart size={14} strokeWidth={1.5} />
+            <Heart size={14} strokeWidth={1.5} fill={saved ? "currentColor" : "none"} />
           </button>
         </div>
 

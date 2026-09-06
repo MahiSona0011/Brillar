@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { Suspense, useEffect, useRef } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 
-export default function CheckoutSuccessPage() {
+function CheckoutSuccessContent() {
   const sectionRef = useRef<HTMLElement>(null);
+  const searchParams = useSearchParams();
 
   useGSAP(() => {
     const elements = sectionRef.current?.querySelectorAll(".reveal-item");
@@ -17,7 +19,8 @@ export default function CheckoutSuccessPage() {
     });
   }, { scope: sectionRef });
 
-  const orderNumber = `BRL-${Date.now().toString().slice(-6)}`;
+  const orderId = searchParams.get("order");
+  const orderNumber = orderId ? `BRL-${orderId.slice(-8).toUpperCase()}` : "—";
 
   return (
     <main ref={sectionRef} className="min-h-[80vh] flex items-center justify-center px-8 py-24">
@@ -93,5 +96,13 @@ export default function CheckoutSuccessPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function CheckoutSuccessPage() {
+  return (
+    <Suspense fallback={null}>
+      <CheckoutSuccessContent />
+    </Suspense>
   );
 }

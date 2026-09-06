@@ -1,11 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { signIn } from "next-auth/react";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, Lock } from "lucide-react";
 
-export default function SignInPage() {
+function SignInForm() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl") || "/account";
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
@@ -16,9 +22,22 @@ export default function SignInPage() {
     e.preventDefault();
     setLoading(true);
     setError("");
-    await new Promise((r) => setTimeout(r, 1200));
+
+    const result = await signIn("credentials", {
+      redirect: false,
+      email,
+      password,
+    });
+
     setLoading(false);
-    setError("Sign-in requires a live database connection. Coming soon.");
+
+    if (result?.error) {
+      setError("Incorrect email or password.");
+      return;
+    }
+
+    router.push(callbackUrl);
+    router.refresh();
   }
 
   return (
@@ -42,10 +61,12 @@ export default function SignInPage() {
             </p>
           </div>
 
-          {/* Google SSO */}
+          {/* Google SSO — not configured yet */}
           <button
             type="button"
-            className="flex w-full items-center justify-center gap-3 h-11 border border-[#2A2A2A] rounded-[2px] font-inter text-xs tracking-[0.06em] text-[#888888] hover:border-[#444444] hover:text-[#F9F9F9] transition-all mb-5"
+            disabled
+            title="Google sign-in coming soon"
+            className="flex w-full items-center justify-center gap-3 h-11 border border-[#2A2A2A] rounded-[2px] font-inter text-xs tracking-[0.06em] text-[#888888] opacity-40 cursor-not-allowed mb-5"
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
               <path d="M15.68 8.18c0-.57-.05-1.12-.14-1.64H8v3.1h4.31a3.68 3.68 0 01-1.6 2.42v2h2.58c1.51-1.39 2.39-3.44 2.39-5.88z" fill="#4285F4"/>
@@ -135,5 +156,13 @@ export default function SignInPage() {
         </p>
       </motion.div>
     </div>
+  );
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense fallback={null}>
+      <SignInForm />
+    </Suspense>
   );
 }

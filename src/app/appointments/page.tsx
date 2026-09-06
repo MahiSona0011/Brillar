@@ -1,8 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { MapPin, Video, Sparkles, Check, Clock, Shield, Star } from "lucide-react";
+import { bookAppointment, type BookableAppointmentType } from "@/lib/actions/appointments";
+
+const TIER_TO_TYPE: Record<string, BookableAppointmentType> = {
+  complimentary: "VIRTUAL",
+  signature: "IN_STORE",
+  bespoke: "BESPOKE",
+};
 
 // ─── Tier data ─────────────────────────────────────────────────────────────
 
@@ -75,16 +83,32 @@ export default function AppointmentsPage() {
   const [notes, setNotes]   = useState("");
   const [loading, setLoading] = useState(false);
   const [booked, setBooked]   = useState(false);
+  const [error, setError]     = useState("");
+  const [needsAuth, setNeedsAuth] = useState(false);
 
   const canSubmit = !!(tier && date && time && name.trim() && email.trim());
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!canSubmit) return;
+    if (!canSubmit || !tier) return;
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 1800));
-    setLoading(false);
-    setBooked(true);
+    setError("");
+    setNeedsAuth(false);
+    try {
+      await bookAppointment({
+        type: TIER_TO_TYPE[tier],
+        date,
+        time,
+        notes: notes ? `${notes}\n\n(Requested by ${name}, ${email})` : `Requested by ${name}, ${email}`,
+      });
+      setLoading(false);
+      setBooked(true);
+    } catch (err) {
+      setLoading(false);
+      const message = err instanceof Error ? err.message : "Could not book appointment.";
+      setError(message);
+      setNeedsAuth(message.includes("signed in"));
+    }
   }
 
   return (
@@ -313,6 +337,17 @@ export default function AppointmentsPage() {
                     className="w-full bg-[#111111] border border-[#2A2A2A] rounded-[2px] px-4 py-3 font-inter text-sm text-[#F9F9F9] placeholder:text-[#333333] focus:outline-none focus:border-[#D4AF37]/50 transition-colors resize-none"
                   />
                 </div>
+
+                {error && (
+                  <p className="font-inter text-[10px] tracking-[0.06em] text-[#C06080] bg-[#6B2A3A]/10 border border-[#6B2A3A]/20 rounded-[2px] px-3 py-2">
+                    {error}{" "}
+                    {needsAuth && (
+                      <Link href="/auth/signin?callbackUrl=/appointments" className="underline hover:text-[#F9F9F9]">
+                        Sign in
+                      </Link>
+                    )}
+                  </p>
+                )}
 
                 <button
                   type="submit"

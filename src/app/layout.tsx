@@ -3,6 +3,7 @@ import "./globals.css";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import LenisProvider from "@/components/providers/LenisProvider";
+import AuthSessionProvider from "@/components/providers/AuthSessionProvider";
 import CursorGlow from "@/components/ui/CursorGlow";
 import WhatsAppButton from "@/components/ui/WhatsAppButton";
 import { CartProvider } from "@/components/cart/CartContext";
@@ -35,6 +36,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className="h-full">
       <body className="min-h-full flex flex-col bg-[#0A0A0A] text-[#F9F9F9] antialiased">
+        <AuthSessionProvider>
         <CurrencyProvider>
         <CartProvider>
           <LenisProvider>
@@ -49,6 +51,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </LenisProvider>
         </CartProvider>
         </CurrencyProvider>
+        </AuthSessionProvider>
       </body>
     </html>
   );

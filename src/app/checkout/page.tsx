@@ -1,13 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { ChevronRight, Lock, Check } from "lucide-react";
+import { loadStripe } from "@stripe/stripe-js";
+import {
+  Elements,
+  CardElement,
+  useStripe,
+  useElements,
+} from "@stripe/react-stripe-js";
 import { useCart } from "@/components/cart/CartContext";
 import ImageWithFallback from "@/components/ui/ImageWithFallback";
 import { formatPrice } from "@/lib/utils";
+import { createPaymentIntent, createOrder } from "@/lib/actions/checkout";
+
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "");
 
 type Step = "information" | "shipping" | "payment" | "review";
 
@@ -28,18 +39,13 @@ interface FormData {
   state: string;
   zip: string;
   country: string;
-  shippingMethod: string;
-  cardName: string;
-  cardNumber: string;
-  expiry: string;
-  cvv: string;
+  shippingMethod: "express" | "white-glove";
 }
 
 const INITIAL_FORM: FormData = {
   firstName: "", lastName: "", email: "", phone: "",
   address: "", city: "", state: "", zip: "", country: "US",
   shippingMethod: "express",
-  cardName: "", cardNumber: "", expiry: "", cvv: "",
 };
 
 function StepIndicator({ current }: { current: Step }) {
@@ -104,16 +110,41 @@ function InputField({
   );
 }
 
-export default function CheckoutPage() {
+const CARD_ELEMENT_OPTIONS = {
+  style: {
+    base: {
+      fontSize: "14px",
+      color: "#F9F9F9",
+      fontFamily: "Inter, sans-serif",
+      "::placeholder": { color: "#444444" },
+    },
+    invalid: { color: "#C06080" },
+  },
+};
+
+function CheckoutInner() {
   const router = useRouter();
+  const { status } = useSession();
   const { items, subtotal, clearCart } = useCart();
+  const stripe = useStripe();
+  const elements = useElements();
+
   const [step, setStep] = useState<Step>("information");
   const [form, setForm] = useState<FormData>(INITIAL_FORM);
   const [processing, setProcessing] = useState(false);
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [preparingPayment, setPreparingPayment] = useState(false);
+  const [paymentError, setPaymentError] = useState("");
 
   const tax = Math.round(subtotal * 0.08);
   const shipping = form.shippingMethod === "express" ? 95 : 0;
   const total = subtotal + tax + shipping;
+
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/auth/signin?callbackUrl=/checkout");
+    }
+  }, [status, router]);
 
   function update(name: keyof FormData, value: string) {
     setForm((f) => ({ ...f, [name]: value }));
@@ -121,16 +152,92 @@ export default function CheckoutPage() {
 
   const stepIndex = STEPS.findIndex((s) => s.id === step);
 
-  function nextStep() {
+  async function nextStep() {
     const next = STEPS[stepIndex + 1];
-    if (next) setStep(next.id);
+    if (!next) return;
+
+    if (next.id === "payment" && !clientSecret) {
+      setPreparingPayment(true);
+      setPaymentError("");
+      try {
+        const lineItems = items.map((i) => ({ id: i.id, quantity: i.quantity, size: i.size }));
+        const result = await createPaymentIntent(lineItems, form.shippingMethod);
+        setClientSecret(result.clientSecret);
+      } catch (err) {
+        setPaymentError(err instanceof Error ? err.message : "Could not prepare payment.");
+        setPreparingPayment(false);
+        return;
+      }
+      setPreparingPayment(false);
+    }
+
+    setStep(next.id);
   }
 
   async function placeOrder() {
+    if (!stripe || !elements || !clientSecret) return;
+    const card = elements.getElement(CardElement);
+    if (!card) return;
+
     setProcessing(true);
-    await new Promise((r) => setTimeout(r, 2000));
-    clearCart();
-    router.push("/checkout/success");
+    setPaymentError("");
+
+    const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
+      payment_method: {
+        card,
+        billing_details: {
+          name: `${form.firstName} ${form.lastName}`.trim(),
+          email: form.email,
+        },
+      },
+    });
+
+    if (error) {
+      setPaymentError(error.message ?? "Your card could not be charged.");
+      setProcessing(false);
+      return;
+    }
+
+    if (paymentIntent?.status !== "succeeded") {
+      setPaymentError("Payment could not be completed.");
+      setProcessing(false);
+      return;
+    }
+
+    try {
+      const lineItems = items.map((i) => ({ id: i.id, quantity: i.quantity, size: i.size }));
+      const { orderId } = await createOrder({
+        items: lineItems,
+        shippingMethod: form.shippingMethod,
+        address: {
+          firstName: form.firstName,
+          lastName: form.lastName,
+          line1: form.address,
+          city: form.city,
+          state: form.state,
+          postalCode: form.zip,
+          country: form.country,
+        },
+        stripePaymentId: paymentIntent.id,
+      });
+      clearCart();
+      router.push(`/checkout/success?order=${orderId}`);
+    } catch (err) {
+      setPaymentError(
+        err instanceof Error
+          ? `Payment succeeded but we could not save your order: ${err.message}. Please contact support with reference ${paymentIntent.id}.`
+          : "Payment succeeded but we could not save your order. Please contact support."
+      );
+      setProcessing(false);
+    }
+  }
+
+  if (status === "loading" || status === "unauthenticated") {
+    return (
+      <div className="mx-auto max-w-[1440px] px-8 md:px-16 py-32 text-center">
+        <p className="font-inter text-xs tracking-[0.1em] uppercase text-[#555555]">Loading…</p>
+      </div>
+    );
   }
 
   if (items.length === 0) {
@@ -265,19 +372,30 @@ export default function CheckoutPage() {
                     <div className="flex items-center gap-2 text-[#555555]">
                       <Lock size={13} strokeWidth={1.5} />
                       <span className="font-inter text-[10px] tracking-[0.06em]">
-                        Your payment is encrypted and secure. Card details are never stored.
+                        Your payment is processed securely by Stripe. Card details are never stored on our servers.
                       </span>
                     </div>
                   </div>
-                  <InputField label="Name on card" name="cardName" value={form.cardName} onChange={update} required />
-                  <InputField label="Card number" name="cardNumber" value={form.cardNumber} onChange={update} placeholder="1234 5678 9012 3456" required />
-                  <div className="grid grid-cols-2 gap-4">
-                    <InputField label="Expiry date" name="expiry" value={form.expiry} onChange={update} placeholder="MM / YY" required />
-                    <InputField label="CVV" name="cvv" value={form.cvv} onChange={update} placeholder="•••" required />
-                  </div>
+
+                  {preparingPayment && (
+                    <p className="font-inter text-xs text-[#888888]">Preparing secure payment form…</p>
+                  )}
+
+                  {!preparingPayment && clientSecret && (
+                    <div className="bg-[#111111] border border-[#2A2A2A] rounded-[2px] px-4 py-4">
+                      <CardElement options={CARD_ELEMENT_OPTIONS} />
+                    </div>
+                  )}
+
                   <p className="font-inter text-[9px] tracking-[0.06em] text-[#444444]">
-                    Accepted: Visa · Mastercard · Amex · PayPal · Bank transfer for orders over $50,000
+                    Test mode — use card 4242 4242 4242 4242, any future expiry, any CVC.
                   </p>
+
+                  {paymentError && (
+                    <p className="font-inter text-[10px] tracking-[0.06em] text-[#C06080] bg-[#6B2A3A]/10 border border-[#6B2A3A]/20 rounded-[2px] px-3 py-2">
+                      {paymentError}
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -316,6 +434,12 @@ export default function CheckoutPage() {
                       </div>
                     ))}
                   </div>
+
+                  {paymentError && (
+                    <p className="font-inter text-[10px] tracking-[0.06em] text-[#C06080] bg-[#6B2A3A]/10 border border-[#6B2A3A]/20 rounded-[2px] px-3 py-2">
+                      {paymentError}
+                    </p>
+                  )}
                 </div>
               )}
             </motion.div>
@@ -339,7 +463,7 @@ export default function CheckoutPage() {
             {step === "review" ? (
               <button
                 onClick={placeOrder}
-                disabled={processing}
+                disabled={processing || !stripe}
                 className="group relative flex h-12 items-center px-8 gap-2 border border-[#D4AF37] font-inter text-xs tracking-[0.1em] uppercase text-[#D4AF37] rounded-[2px] overflow-hidden transition-all duration-500 hover:text-[#0A0A0A] disabled:opacity-60"
               >
                 <span className="absolute inset-0 bg-[#D4AF37] translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
@@ -351,12 +475,13 @@ export default function CheckoutPage() {
             ) : (
               <button
                 onClick={nextStep}
-                className="group relative flex h-12 items-center px-8 gap-2 border border-[#D4AF37] font-inter text-xs tracking-[0.1em] uppercase text-[#D4AF37] rounded-[2px] overflow-hidden transition-all duration-500 hover:text-[#0A0A0A]"
+                disabled={preparingPayment}
+                className="group relative flex h-12 items-center px-8 gap-2 border border-[#D4AF37] font-inter text-xs tracking-[0.1em] uppercase text-[#D4AF37] rounded-[2px] overflow-hidden transition-all duration-500 hover:text-[#0A0A0A] disabled:opacity-60"
               >
                 <span className="absolute inset-0 bg-[#D4AF37] translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
                 <span className="relative z-10 flex items-center gap-2">
-                  Continue
-                  <ChevronRight size={13} strokeWidth={1.5} />
+                  {preparingPayment ? "Please wait…" : "Continue"}
+                  {!preparingPayment && <ChevronRight size={13} strokeWidth={1.5} />}
                 </span>
               </button>
             )}
@@ -414,5 +539,13 @@ export default function CheckoutPage() {
         </aside>
       </div>
     </div>
+  );
+}
+
+export default function CheckoutPage() {
+  return (
+    <Elements stripe={stripePromise}>
+      <CheckoutInner />
+    </Elements>
   );
 }
