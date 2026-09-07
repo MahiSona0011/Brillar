@@ -143,7 +143,7 @@ export default function Navbar() {
             >
               <Search size={18} strokeWidth={1.5} />
             </button>
-            <Link href="/wishlist" aria-label="Wishlist" className="relative text-[#888888] hover:text-[#D4AF37] transition-colors duration-400">
+            <Link href="/account/wishlist" aria-label="Wishlist" className="relative text-[#888888] hover:text-[#D4AF37] transition-colors duration-400">
               <Heart size={18} strokeWidth={1.5} />
             </Link>
             <button
