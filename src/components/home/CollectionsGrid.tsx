@@ -16,7 +16,7 @@ const COLLECTIONS = [
     label: "Diamond rings",
     subtitle: "Solitaire & pavé",
     href: "/collections/rings",
-    image: "https://images.unsplash.com/photo-1677768061375-cd600727e274?q=80&w=1600&auto=format&fit=crop",
+    image: "/images/products/ring-1.jpg",
     offset: "md:mt-0",
     aspect: "aspect-[3/4]",
   },
@@ -25,7 +25,7 @@ const COLLECTIONS = [
     label: "Bridal",
     subtitle: "Engagement & wedding",
     href: "/collections/bridal",
-    image: "https://images.unsplash.com/photo-1727726225026-7730bbcd5062?q=80&w=1600&auto=format&fit=crop",
+    image: "/images/products/bridal-set-1.jpg",
     offset: "md:mt-16",
     aspect: "aspect-[3/4]",
   },
@@ -34,7 +34,7 @@ const COLLECTIONS = [
     label: "Necklaces",
     subtitle: "Pendants & chains",
     href: "/collections/necklaces",
-    image: "https://images.unsplash.com/photo-1747933509433-c58152c10ee7?q=80&w=1600&auto=format&fit=crop",
+    image: "/images/products/necklace-1.avif",
     offset: "md:mt-8",
     aspect: "aspect-[3/4]",
   },
@@ -162,9 +162,9 @@ export default function CollectionsGrid() {
       {/* Second row — smaller cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 mt-6 md:mt-8">
         {[
-          { label: "Earrings",   href: "/collections/earrings",   image: "/images/collections/earrings.jpg"   },
-          { label: "Bracelets",  href: "/collections/bracelets",  image: "/images/collections/bracelets.jpg"  },
-          { label: "Custom",     href: "/custom",                  image: "/images/collections/custom.jpg"    },
+          { label: "Earrings",   href: "/collections/earrings",   image: "/images/products/earrings-1.jpg"   },
+          { label: "Bracelets",  href: "/collections/bracelets",  image: "/images/products/bracelet-1.jpg"  },
+          { label: "Custom",     href: "/custom",                  image: "/images/products/ring-4.jpg"    },
         ].map((col, i) => (
           <Link
             key={col.label}
