@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { ArrowRight } from "lucide-react";
 import ImageWithFallback from "@/components/ui/ImageWithFallback";
-import { COLLECTIONS } from "@/lib/data";
+import { COLLECTIONS, getProductsByCategory } from "@/lib/data";
 
 export const metadata: Metadata = {
   title: "Collections",
@@ -27,7 +27,9 @@ export default function CollectionsPage() {
 
       {/* Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-        {COLLECTIONS.map((col, i) => (
+        {COLLECTIONS.map((col, i) => {
+          const productCount = getProductsByCategory(col.category).length;
+          return (
           <Link
             key={col.slug}
             href={`/collections/${col.slug}`}
@@ -57,9 +59,9 @@ export default function CollectionsPage() {
                 <h2 className="font-cinzel text-xl tracking-[0.06em] text-[#F9F9F9]">
                   {col.label}
                 </h2>
-                {col.productCount > 0 && (
+                {productCount > 0 && (
                   <p className="mt-1 font-inter text-[10px] tracking-[0.06em] text-[#555555]">
-                    {col.productCount} pieces
+                    {productCount} pieces
                   </p>
                 )}
                 <div className="flex items-center gap-1.5 mt-3 text-[#D4AF37] opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-400">
@@ -69,7 +71,8 @@ export default function CollectionsPage() {
               </div>
             </div>
           </Link>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
